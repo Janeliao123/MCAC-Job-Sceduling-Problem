@@ -1,0 +1,47 @@
+This is BibTeX, Version 0.99d (TeX Live 2019/W32TeX)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: proposal_MCAC.aux
+The style file: ormsv080.bst
+Database file #1: MCAC_reference.bib
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+You've used 13 entries,
+            3236 wiz_defined-function locations,
+            750 strings with 6786 characters,
+and the built_in function-call counts, 7755 in all, are:
+= -- 645
+> -- 259
+< -- 9
++ -- 98
+- -- 75
+* -- 547
+:= -- 1185
+add.period$ -- 52
+call.type$ -- 13
+change.case$ -- 89
+chr.to.int$ -- 13
+cite$ -- 13
+duplicate$ -- 613
+empty$ -- 631
+format.name$ -- 112
+if$ -- 1533
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 127
+newline$ -- 77
+num.names$ -- 52
+pop$ -- 224
+preamble$ -- 1
+purify$ -- 77
+quote$ -- 0
+skip$ -- 180
+stack$ -- 0
+substring$ -- 462
+swap$ -- 310
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 114
+warning$ -- 0
+while$ -- 63
+width$ -- 0
+write$ -- 179
