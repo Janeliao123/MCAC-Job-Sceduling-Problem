@@ -1,19 +1,25 @@
 from gurobipy import*
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
-def das_model(file_num = 0, m_list = [], n_list = [], folder_name = "testdata", result_name = "result", run_time = 600, show_result = False):
+def das_model(file_num = 0, factors_list={}, type=[], folder_name = "testdata", result_name = "result", run_time = 600, show_result = False):
 
-    for m in m_list: # - 0106修正
-        final = open(result_name + "/m" + str(m) + "result_ip_relax_y_dict.txt", "w+")
+    path_name = result_name + "/relax_model"
+    Path(path_name).mkdir(parents=True, exist_ok=True)
+
+    for factor in factors_list.values():
+        # final = open(result_name + "/m" + str(m) + "result_ip_relax_y_dict.txt", "w+")
         
-        # 寫檔案
-        final.write('name runtime gap objectives \n')
+        # # 寫檔案
+        # final.write('name runtime gap objectives \n')
 
-        for n in n_list:
+        for t in type:
 
+            final_df = pd.DataFrame(columns=['factor', 'type', 'index', 'runtime', 'gap', 'objectives'])
             # 讀取規模
-            prefix = "m"+str(m)+"n"+str(n)+"_" # problem 編號
+            # prefix = "m"+str(m)+"n"+str(n)+"_" # problem 編號
+            prefix = factor + '_' + t  # problem 編號
             file_list = [str(i+1) for i in range(file_num)]
 
             A_i = {}
@@ -27,7 +33,7 @@ def das_model(file_num = 0, m_list = [], n_list = [], folder_name = "testdata", 
             for index in file_list:
 
                 # 讀取同規模的測資
-                f = open(folder_name + "/" + prefix + index + ".txt", "r")
+                f = open(folder_name + "/" + prefix + "/" + prefix + '_' + index + ".txt", "r")
                 first_line = f.readline().split()
 
                 #=================== 資料部分 ===================#
@@ -157,32 +163,46 @@ def das_model(file_num = 0, m_list = [], n_list = [], folder_name = "testdata", 
 
                 # 寫檔案
                 if eg1.Runtime > run_time:
-                    final.write(name + " " + str(eg1.Runtime) + " " + str(eg1.MIPGap) + " " + str(eg1.objVal) + "\n")
+                    final_df = final_df.append({'factor': factor, 'type': t, 'index': str(index), 'runtime':str(eg1.Runtime), 'gap': str(eg1.MIPGap) , 'objectives': str(eg1.objVal)} , ignore_index=True)
+                    # final.write(name + " " + str(eg1.Runtime) + " " + str(eg1.MIPGap) + " " + str(eg1.objVal) + "\n")
                 else:
-                    final.write(name + " " + str(eg1.Runtime) + " " + "-" + " " + str(eg1.objVal) + "\n")
+                    final_df = final_df.append({'factor': factor, 'type': t, 'index': str(index), 'runtime':str(eg1.Runtime), 'gap': '-' , 'objectives': str(eg1.objVal)} , ignore_index=True)    
 
-        final.close()
+            # final.close()
+            with pd.ExcelWriter(result_name + "/relax_model/" + prefix + ".xlsx", engine="openpyxl", mode='w') as writer:
+                final_df.to_excel(writer)
 
         # show the result
 
         if show_result:          
-            print("\n\nModel Result:")
+            print("\n\n Model Result:")
             print("\n")
-
-            # w_j
-            print("w_j")
-            total_demand = []
-            order_name = []
-            for j in N:
-                try:
-                    total_demand.append(round(w_j[j].x))
-                except:
-                    total_demand.append(0)
-            df_total_demand = pd.DataFrame(total_demand).transpose()
-            df_total_demand.columns = range(1,len(N)+1)
-            df_total_demand.index = ["Order"]
-            print(df_total_demand)
-            print("\n")
+            
+            # # sum_j
+            # print("sum_j")
+            # total_sum = []
+            # for j in N:
+            #     total_sum.append(Q_j[j] - sum(g_ijt[i,j,t].x for i in M for t in range(1,D_j[j]+1)))
+            # df_total_demand = pd.DataFrame(total_sum).transpose()
+            # print(df_total_demand)          
+            # df_total_demand.columns = range(1,len(N)+1)
+            # df_total_demand.index = ["Order"]
+            # print("\n")
+            
+            # # w_j
+            # print("w_j")
+            # total_demand = []
+            # order_name = []
+            # for j in N:
+            #     try:
+            #         total_demand.append(round(w_j[j].x))
+            #     except:
+            #         total_demand.append(0)
+            # df_total_demand = pd.DataFrame(total_demand).transpose()
+            # df_total_demand.columns = range(1,len(N)+1)
+            # df_total_demand.index = ["Order"]
+            # print(df_total_demand)
+            # print("\n")
 
             # ## z_ij
             # print("z_ij")
@@ -240,13 +260,13 @@ def das_model(file_num = 0, m_list = [], n_list = [], folder_name = "testdata", 
 
             print("g_ijt (Order : Amount)")
             define_len = 5
-            loop_count = len(T) // define_len
+            loop_count = math.ceil(len(T) / define_len)
             
             for loop_index in range(loop_count):
                 total_machine = []
                 for i in M:
                     total_row = []
-                    for t in T[loop_index*define_len:(loop_index+1)*define_len]:
+                    for t in T[loop_index*define_len:min((loop_index+1)*define_len,len(T))]:
                         row = " "
                         found = False
                         for j in N:
@@ -275,8 +295,10 @@ def das_model(file_num = 0, m_list = [], n_list = [], folder_name = "testdata", 
                 df_total_machine = pd.DataFrame(total_machine)
 
                 list_time = []
-                for i in range(loop_index*define_len+1,(loop_index+1)*define_len+1):
+                for i in range(loop_index*define_len+1,min((loop_index+1)*define_len,len(T))+1):
                     list_time.append("Time" + str(i))
+                print(list_time)
+                print(df_total_machine)
                 df_total_machine.columns = list_time             
                 
                 list_machine = []

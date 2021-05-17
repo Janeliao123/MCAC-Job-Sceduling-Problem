@@ -1,21 +1,26 @@
 from gurobipy import *
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
-def das_model(file_num = 0, m_list = [], n_list = [], folder_name = "testdata", result_name = "result", run_time = 600, show_result = False):
-
-    for m in m_list: # - 0106修正
-        final = open(result_name + "/m" + str(m) + "result_alt_obj.txt", "w+")
+def das_model(file_num = 0, factors_list={}, type=[], folder_name = "testdata", result_name = "result", run_time = 600, show_result = False):
+    
+    path_name = result_name + "/model"
+    Path(path_name).mkdir(parents=True, exist_ok=True)
+    
+    for factor in list(factors_list.values())[3:]:
+        # final = open(result_name + "/m" + str(m) + "result_alt_obj.txt", "w+")
         
         # 寫檔案
-        final.write('name runtime gap objectives \n')
+        # final.write('name runtime gap objectives \n')
 
-        for n in n_list:
-
+        for t in type:
+            final_df = pd.DataFrame(columns=['factor', 'type', 'index', 'runtime', 'gap', 'objectives'])
             # 讀取規模
-            prefix = "m"+str(m)+"n"+str(n)+"_" # problem 編號
+            # prefix = "m"+str(m)+"n"+str(n)+"_" # problem 編號
+            prefix = factor + '_' + t  # problem 編號
             file_list = [str(i+1) for i in range(file_num)]
-
+            
             A_i = {}
             B_i = {}
             F_i = {}
@@ -28,7 +33,7 @@ def das_model(file_num = 0, m_list = [], n_list = [], folder_name = "testdata", 
             for index in file_list:
 
                 # 讀取同規模的測資
-                f = open(folder_name + "/" + "m" + str(m) + "n" + str(n) + "/" + prefix + index + ".txt", "r")
+                f = open(folder_name + "/" + prefix + "/" + prefix + '_' + index + ".txt", "r")
                 first_line = f.readline().split()
 
                 #=================== 資料部分 ===================#
@@ -135,15 +140,18 @@ def das_model(file_num = 0, m_list = [], n_list = [], folder_name = "testdata", 
                 if eg1.Runtime > run_time:
                     print("Final MIP gap value: %f" % eg1.MIPGap)           
 
-                name = prefix + index
+                # name = prefix + '_' + index
 
                 # 寫檔案
                 if eg1.Runtime > run_time:
-                    final.write(name + " " + str(eg1.Runtime) + " " + str(eg1.MIPGap) + " " + str(eg1.objVal) + "\n")
+                    final_df = final_df.append({'factor': factor, 'type': t, 'index': str(index), 'runtime':str(eg1.Runtime), 'gap': str(eg1.MIPGap) , 'objectives': str(eg1.objVal)} , ignore_index=True)
+                    # final.write(name + " " + str(eg1.Runtime) + " " + str(eg1.MIPGap) + " " + str(eg1.objVal) + "\n")
                 else:
-                    final.write(name + " " + str(eg1.Runtime) + " " + "-" + " " + str(eg1.objVal) + "\n")
+                    final_df = final_df.append({'factor': factor, 'type': t, 'index': str(index), 'runtime':str(eg1.Runtime), 'gap': '-' , 'objectives': str(eg1.objVal)} , ignore_index=True)    
 
-        final.close()
+            # final.close()
+            with pd.ExcelWriter(result_name + "/model/" + prefix + ".xlsx", engine="openpyxl", mode='w') as writer:
+                final_df.to_excel(writer)
 
         # show the result
 
@@ -232,7 +240,7 @@ def das_model(file_num = 0, m_list = [], n_list = [], folder_name = "testdata", 
             ## g_ijt
 
             print("g_ijt (Order : Amount)")
-            define_len = 8
+            define_len = 5
             loop_count = math.ceil(len(T) / define_len)
             
             for loop_index in range(loop_count):
